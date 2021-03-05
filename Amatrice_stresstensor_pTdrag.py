@@ -53,25 +53,63 @@ mud = fs * 0.0 + fdI # dynamic friction coeff. (0.55)
 d_c = DcI_grid_new * 1 # critical distance
 coh = fs * cohesion # cohesion
 
-# # add percentage of T0_m
-# T0_m = T0_m + 0.4 * T0_m
+# load slip from planar case
+data = np.genfromtxt('../Data/Case_A_ASl_40s.csv', delimiter=',',skip_header=1)
+x = data[:,-3]
+y = data[:,-2]
+z = data[:,-1]
+ASl = data[:,15]
+xi = np.linspace(-18000,12000,601)
+zi = np.linspace(0,-14000*np.sin(45*np.pi/180),281)
+from scipy.interpolate import griddata
+ASli = griddata((x, z), ASl, (xi[None,:], zi[:,None]), method='linear').T
 
-# # add percentage of T0_m only inside slip area
-# data = np.genfromtxt('../Data/Case_A_ASl_40s.csv', delimiter=',',skip_header=1)
-# x = data[:,-3]
-# y = data[:,-2]
-# z = data[:,-1]
-# ASl = data[:,15]
-# xi = np.linspace(-18000,12000,601)
-# zi = np.linspace(0,-14000*np.sin(45*np.pi/180),281)
-# from scipy.interpolate import griddata
-# ASli = griddata((x, z), ASl, (xi[None,:], zi[:,None]), method='linear').T
-# SSinv = ASli*1
-# Smin = 0.6;Smax = 0.01
-# SSinv[SSinv>Smin]=Smin
-# SSinv[SSinv<Smax]=Smax
-# SSinv = ((SSinv-Smax)/(Smin-Smax))
-# T0_m = T0_m + 0.4*T0_m*SSinv
+nx = 601
+nz = 281
+xmin = -18000
+xmax = 12000
+zmin = 0
+zmax = -14000 * np.sin(45*np.pi/180)
+
+x = np.linspace(xmin,xmax,nx)
+z = np.linspace(zmin,zmax,nz)
+
+vpdepth1d = z * 1
+vsdepth1d = z * 1
+rhodepth1d = z * 1
+vpdepth1d[np.argwhere(z<-5000)] = 6510.
+vpdepth1d[np.argwhere(z>=-5000)] = 5760.
+vpdepth1d[np.argwhere(z>=-2000)] = 4830.
+vpdepth1d[np.argwhere(z>=-1000)] = 3160.
+vsdepth1d[np.argwhere(z<-5000)] = 3500.
+vsdepth1d[np.argwhere(z>=-5000)] = 3100.
+vsdepth1d[np.argwhere(z>=-2000)] = 2600.
+vsdepth1d[np.argwhere(z>=-1000)] = 1700.
+rhodepth1d[np.argwhere(z<-5000)] = 3150.
+rhodepth1d[np.argwhere(z>=-5000)] = 2940.
+rhodepth1d[np.argwhere(z>=-2000)] = 2840.
+rhodepth1d[np.argwhere(z>=-1000)] = 2500.
+
+vp1d = np.zeros((nx,nz))
+vs1d = np.zeros((nx,nz))
+rho1d = np.zeros((nx,nz))
+for i in range(x.size):
+    vp1d[i] = vpdepth1d
+    vs1d[i] = vsdepth1d
+    rho1d[i] = rhodepth1d
+mu1d  = vs1d ** 2 * rho1d
+# lambda1d = vp1d ** 2 * rho1d - 2 * mu1d
+
+# compute Tdrag from equation 5 (Fang & Dunham, 2013)
+Lambda_min = 0.1e3
+Alpha = 10**-2
+G = mu1d * 1
+v = (0.5*(vp1d/vs1d)**2-1)/((vp1d/vs1d)**2-1)
+Gstar = G / (1-v)
+Tdrag = 8 * np.pi**3 * Alpha**2 * Gstar * ASli * (1/Lambda_min)
+
+# add percentage of Tdrag to Td0
+T0_m = T0_m + 1.2*Tdrag
 
 # vertical fault stresses (case: align with x-axis)
 stress_vertical = np.zeros((9,T0I_grid_new.shape[0],T0I_grid_new.shape[1]))
