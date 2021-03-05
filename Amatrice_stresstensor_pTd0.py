@@ -53,25 +53,22 @@ mud = fs * 0.0 + fdI # dynamic friction coeff. (0.55)
 d_c = DcI_grid_new * 1 # critical distance
 coh = fs * cohesion # cohesion
 
-# # add percentage of T0_m
-# T0_m = T0_m + 0.4 * T0_m
-
-# # add percentage of T0_m only inside slip area
-# data = np.genfromtxt('../Data/Case_A_ASl_40s.csv', delimiter=',',skip_header=1)
-# x = data[:,-3]
-# y = data[:,-2]
-# z = data[:,-1]
-# ASl = data[:,15]
-# xi = np.linspace(-18000,12000,601)
-# zi = np.linspace(0,-14000*np.sin(45*np.pi/180),281)
-# from scipy.interpolate import griddata
-# ASli = griddata((x, z), ASl, (xi[None,:], zi[:,None]), method='linear').T
-# SSinv = ASli*1
-# Smin = 0.6;Smax = 0.01
-# SSinv[SSinv>Smin]=Smin
-# SSinv[SSinv<Smax]=Smax
-# SSinv = ((SSinv-Smax)/(Smin-Smax))
-# T0_m = T0_m + 0.4*T0_m*SSinv
+# add percentage of T0_m only inside slip area
+data = np.genfromtxt('../Data/Case_A_ASl_40s.csv', delimiter=',',skip_header=1)
+x = data[:,-3]
+y = data[:,-2]
+z = data[:,-1]
+ASl = data[:,15]
+xi = np.linspace(-18000,12000,601)
+zi = np.linspace(0,-14000*np.sin(45*np.pi/180),281)
+from scipy.interpolate import griddata
+ASli = griddata((x, z), ASl, (xi[None,:], zi[:,None]), method='linear').T
+SSinv = ASli*1
+Smin = 0.6;Smax = 0.01
+SSinv[SSinv>Smin]=Smin
+SSinv[SSinv<Smax]=Smax
+SSinv = ((SSinv-Smax)/(Smin-Smax))
+T0_m = T0_m + 0.4*T0_m*SSinv
 
 # vertical fault stresses (case: align with x-axis)
 stress_vertical = np.zeros((9,T0I_grid_new.shape[0],T0I_grid_new.shape[1]))
